@@ -52,11 +52,6 @@ jobs:
             VERSION_CMD="prerelease"
           fi
 
-          # Đảm bảo tăng phiên bản nếu tag đã tồn tại
-          if git rev-parse "v$CURRENT_VERSION" >/dev/null 2>&1; then
-            VERSION_CMD="patch"  # Nếu tag hiện tại tồn tại, tăng patch
-          fi
-
           case $BRANCH_NAME in
             "main")
               VERSION_CMD="patch"
@@ -80,6 +75,15 @@ jobs:
 
           # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
+          # Kiểm tra tag mới đã tồn tại chưa, tăng tiếp nếu cần
+          while git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; do
+            if [ -n "$PREID" ]; then
+              npm version prerelease --preid=$PREID --no-git-tag-version
+            else
+              npm version patch --no-git-tag-version
+            fi
+            NEW_VERSION=$(node -p "require('./package.json').version")
+          done
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and tag version
@@ -89,24 +93,8 @@ jobs:
           git add package.json
           git add dist/
           git commit -m "release: v${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
-          # Tạo tag mới, tránh xung đột
-          if git rev-parse "v${{ steps.version.outputs.new_version }}" >/dev/null 2>&1; then
-            echo "Tag ${{ steps.version.outputs.new_version }} already exists, incrementing..."
-            PREID=$(echo "${{ steps.version.outputs.new_version }}" | grep -oP '(?<=\\-)[^\\.]+' || echo "")
-            if [ -n "$PREID" ]; then
-              npm version prerelease --preid=$PREID --no-git-tag-version
-            else
-              npm version patch --no-git-tag-version
-            fi
-            NEW_VERSION=$(node -p "require('./package.json').version")
-            git add package.json
-            git commit -m "release: v${NEW_VERSION}"
-            git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
-            git push origin "v${NEW_VERSION}"
-          else
-            git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-            git push origin "v${{ steps.version.outputs.new_version }}"
-          fi
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
 
       - name: Publish to npm
         run: npm publish --access public
