@@ -1,0 +1,87 @@
+name: Release with npm version
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - alpha
+      - staging
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}  # Sử dụng token để push
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'  # Sử dụng Node.js 18 (tương thích với v18.18.0 của bạn)
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Determine version bump and release
+        id: version
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          VERSION_CMD="patch"  # Mặc định tăng patch
+          PREID=""
+
+          case $BRANCH_NAME in
+            "main")
+              VERSION_CMD="patch"
+              ;;
+            "dev"|"staging")
+              VERSION_CMD="prerelease"
+              PREID="beta"
+              ;;
+            "alpha"|"issue-"*)
+              VERSION_CMD="prerelease"
+              PREID="alpha"
+              ;;
+          esac
+
+          # Thực hiện tăng phiên bản
+          if [ -n "$PREID" ]; then
+            npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
+          else
+            npm version $VERSION_CMD --no-git-tag-version
+          fi
+
+          # Lấy phiên bản mới
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit and tag version
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add package.json
+          git add dist/
+          git commit -m "release: v${{ steps.version.outputs.new_version }}"
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify Discord on Release
+        if: success()
+        uses: Ilshidur/action-discord@master
+        with:
+          args: "New version **v${{ steps.version.outputs.new_version }}** of @anhtrieunhu/math-utils has been released! Check it out: https://www.npmjs.com/package/@anhtrieunhu/math-utils"
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
