@@ -1,4 +1,4 @@
-name: Release with npm version
+name: Release with npm version based on commits
 
 on:
   push:
@@ -32,29 +32,29 @@ jobs:
       - name: Build TypeScript
         run: npm run build
 
-      - name: Determine version bump and release
+      - name: Determine version bump based on commit and branch
         id: version
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           VERSION_CMD="patch"
           PREID=""
 
-          # Lấy phiên bản hiện tại từ package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # Lấy commit message gần nhất
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
 
-          # Kiểm tra tag hiện tại
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          if [ -n "$(git diff --name-only $LATEST_TAG)" ]; then
-            # Có thay đổi, tăng phiên bản
+          # Phân tích loại commit
+          if echo "$LAST_COMMIT_MESSAGE" | grep -q "BREAKING CHANGE"; then
+            VERSION_CMD="major"
+          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^feat"; then
+            VERSION_CMD="minor"
+          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^fix"; then
             VERSION_CMD="patch"
-          else
-            # Không thay đổi, tăng prerelease nếu có PREID
-            VERSION_CMD="prerelease"
           fi
 
+          # Xác định PREID dựa trên nhánh
           case $BRANCH_NAME in
             "main")
-              VERSION_CMD="patch"
+              # Không dùng pre-release trên main
               ;;
             "dev"|"staging")
               VERSION_CMD="prerelease"
@@ -66,7 +66,23 @@ jobs:
               ;;
           esac
 
-          # Thực hiện tăng phiên bản
+          # Lấy phiên bản hiện tại từ package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          # Kiểm tra tag hiện tại
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+          if [ "$CURRENT_VERSION" = "$LATEST_TAG" ] && [ -n "$(git diff --name-only $LATEST_TAG)" ]; then
+            # Có thay đổi nhưng tag khớp, tăng phiên bản
+            true
+          elif [ "$CURRENT_VERSION" != "$LATEST_TAG" ]; then
+            # Phiên bản mới, giữ nguyên VERSION_CMD
+            true
+          else
+            # Không thay đổi, tăng prerelease nếu có PREID
+            VERSION_CMD="prerelease"
+          fi
+
+          # Thực hiện tăng phiên bản với npm version
           if [ -n "$PREID" ]; then
             npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
           else
@@ -75,15 +91,6 @@ jobs:
 
           # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
-          # Kiểm tra tag mới đã tồn tại chưa, tăng tiếp nếu cần
-          while git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; do
-            if [ -n "$PREID" ]; then
-              npm version prerelease --preid=$PREID --no-git-tag-version
-            else
-              npm version patch --no-git-tag-version
-            fi
-            NEW_VERSION=$(node -p "require('./package.json').version")
-          done
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and tag version
