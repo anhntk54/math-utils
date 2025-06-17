@@ -89,6 +89,10 @@ jobs:
 
           # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Current branch: $BRANCH_NAME"
+            echo "Latest tag: $LATEST_TAG"
+            echo "Current version: $CURRENT_VERSION"
+            echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and tag version
