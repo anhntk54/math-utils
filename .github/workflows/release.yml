@@ -52,7 +52,8 @@ jobs:
               PREID="alpha"
               ;;
           esac
-
+            echo "branch_name=$BRANCH_NAME" 
+            echo "version_cmd=$VERSION_CMD"
           if [ -n "$PREID" ]; then
             npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
           else
