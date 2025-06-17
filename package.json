@@ -8,7 +8,8 @@
     "build": "tsc",
     "preversion": "npm run build",
     "version": "npm run build && git add dist/",
-    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags && npm publish --access public"
+    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags && npm publish --access public",
+    "release:beta": "npm version prerelease --preid=beta && git push --follow-tags && npm publish --access public"
   },
   "publishConfig": {
     "access": "public"
