@@ -91,6 +91,13 @@ jobs:
 
           # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
+            echo "Current branch: $BRANCH_NAME"
+            echo "Version command: $VERSION_CMD"
+            echo "Pre-release identifier: $PREID"
+            echo "Current version: $CURRENT_VERSION"
+            echo "Latest tag: $LATEST_TAG"
+            echo "New version: $NEW_VERSION"
+            # Ghi ra output để sử dụng trong các bước sau
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
 #      - name: Commit and tag version
