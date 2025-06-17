@@ -7,6 +7,7 @@ on:
       - dev
       - alpha
       - staging
+      - 'issue-*'
 
 jobs:
   release:
@@ -17,12 +18,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}  # Sử dụng token để push
+          token: ${{ secrets.GITHUB_TOKEN }}  # Sử dụng GITHUB_TOKEN với quyền write
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'  # Sử dụng Node.js 18 (tương thích với v18.18.0 của bạn)
+          node-version: '18'
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
@@ -35,7 +36,7 @@ jobs:
         id: version
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          VERSION_CMD="patch"  # Mặc định tăng patch
+          VERSION_CMD="patch"
           PREID=""
 
           case $BRANCH_NAME in
@@ -52,14 +53,12 @@ jobs:
               ;;
           esac
 
-          # Thực hiện tăng phiên bản
           if [ -n "$PREID" ]; then
             npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
           else
             npm version $VERSION_CMD --no-git-tag-version
           fi
 
-          # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
@@ -71,7 +70,7 @@ jobs:
           git add dist/
           git commit -m "release: v${{ steps.version.outputs.new_version }}"
           git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"  # Push tag
 
       - name: Publish to npm
         run: npm publish --access public
