@@ -44,13 +44,12 @@ jobs:
 
           # Kiểm tra tag hiện tại
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          if [ "$CURRENT_VERSION" = "$LATEST_TAG" ]; then
-            # Nếu tag khớp, tăng prerelease hoặc patch tùy nhánh
-            if [ -n "$(git diff --name-only $LATEST_TAG)" ]; then
-              VERSION_CMD="patch"  # Có thay đổi, tăng patch
-            else
-              VERSION_CMD="prerelease"  # Không thay đổi, tăng build
-            fi
+          if [ -n "$(git diff --name-only $LATEST_TAG)" ]; then
+            # Có thay đổi, tăng phiên bản
+            VERSION_CMD="patch"
+          else
+            # Không thay đổi, tăng prerelease nếu có PREID
+            VERSION_CMD="prerelease"
           fi
 
           case $BRANCH_NAME in
@@ -87,9 +86,14 @@ jobs:
           git commit -m "release: v${{ steps.version.outputs.new_version }}"
           # Kiểm tra và tạo tag mới, tránh xung đột
           if git rev-parse "v${{ steps.version.outputs.new_version }}" >/dev/null 2>&1; then
-            echo "Tag ${{ steps.version.outputs.new_version }} already exists, skipping tag creation."
-            # Tăng phiên bản thủ công nếu tag tồn tại
-            npm version prerelease --preid=$PREID --no-git-tag-version
+            echo "Tag ${{ steps.version.outputs.new_version }} already exists, incrementing..."
+            # Tăng prerelease thủ công nếu tag tồn tại
+            PREID=$(echo "${{ steps.version.outputs.new_version }}" | grep -oP '(?<=\\-)[^\\.]+' || echo "")
+            if [ -n "$PREID" ]; then
+              npm version prerelease --preid=$PREID --no-git-tag-version
+            else
+              npm version patch --no-git-tag-version
+            fi
             NEW_VERSION=$(node -p "require('./package.json').version")
             git add package.json
             git commit -m "release: v${NEW_VERSION}"
