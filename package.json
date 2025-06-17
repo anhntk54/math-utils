@@ -6,7 +6,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "version": "npm run build && git add dist/"
+    "preversion": "npm run build",
+    "version": "npm run build && git add dist/",
+    "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags && npm publish --access public"
   },
   "publishConfig": {
     "access": "public"
@@ -15,7 +17,11 @@
     "type": "git",
     "url": "git+https://github.com/anhntk54/math-utils.git"
   },
-  "keywords": ["math", "utils", "typescript"],
+  "keywords": [
+    "math",
+    "utils",
+    "typescript"
+  ],
   "author": "Anh Nhu",
   "license": "MIT",
   "devDependencies": {
