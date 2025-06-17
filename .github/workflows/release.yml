@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}  # Sử dụng GITHUB_TOKEN với quyền write
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,6 +39,19 @@ jobs:
           VERSION_CMD="patch"
           PREID=""
 
+          # Lấy phiên bản hiện tại từ package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+
+          # Kiểm tra tag hiện tại
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+          if [ "$CURRENT_VERSION" = "$LATEST_TAG" ] || [ -z "$LATEST_TAG" ]; then
+            # Nếu tag khớp hoặc chưa có tag, tăng phiên bản
+            VERSION_CMD="patch"
+          else
+            # Nếu có commit mới nhưng tag không khớp, tăng prerelease
+            VERSION_CMD="prerelease"
+          fi
+
           case $BRANCH_NAME in
             "main")
               VERSION_CMD="patch"
@@ -52,14 +65,15 @@ jobs:
               PREID="alpha"
               ;;
           esac
-            echo "branch_name=$BRANCH_NAME" 
-            echo "version_cmd=$VERSION_CMD"
+
+          # Thực hiện tăng phiên bản
           if [ -n "$PREID" ]; then
             npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
           else
             npm version $VERSION_CMD --no-git-tag-version
           fi
 
+          # Lấy phiên bản mới
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
@@ -70,8 +84,13 @@ jobs:
           git add package.json
           git add dist/
           git commit -m "release: v${{ steps.version.outputs.new_version }}"
-          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}"  # Push tag
+          # Kiểm tra và tạo tag mới, tránh xung đột
+          if git rev-parse "v${{ steps.version.outputs.new_version }}" >/dev/null 2>&1; then
+            echo "Tag ${{ steps.version.outputs.new_version }} already exists, skipping tag creation."
+          else
+            git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+            git push origin "v${{ steps.version.outputs.new_version }}"
+          fi
 
       - name: Publish to npm
         run: npm publish --access public
