@@ -62,15 +62,15 @@ jobs:
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-#      - name: Commit and tag version
-#        run: |
-#          git config user.name "GitHub Actions"
-#          git config user.email "actions@github.com"
-#          git add package.json
-#          git add dist/
-#          git commit -m "release: v${{ steps.version.outputs.new_version }}"
-#          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-#          git push origin "v${{ steps.version.outputs.new_version }}"  # Push tag
+      - name: Commit and tag version
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add package.json
+          git add dist/
+          git commit -m "release: v${{ steps.version.outputs.new_version }}"
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"  # Push tag
 
       - name: Publish to npm
         run: npm publish --access public
