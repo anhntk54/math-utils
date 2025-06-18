@@ -177,3 +177,28 @@ jobs:
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"body\": \"$COMMENT\"}" \
                "${{ github.event.pull_request._links.comments.href}}" || echo "Failed to post comment on PR"
+
+      - name: Tag and push
+        if: startsWith(env.BRANCH, 'issue-')
+        run: |
+          # Kiểm tra xem tag đã tồn tại chưa
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ env.NEW_VERSION }}"; then
+            echo "Tag v${{ env.NEW_VERSION }} already exists, deleting it..."
+            git push origin :refs/tags/v${{ env.NEW_VERSION }} || echo "Failed to delete existing tag"
+          fi
+    
+          # Cấu hình danh tính Git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+    
+          # Fetch nhánh nguồn nếu là PR
+          if [ "${{ env.PR_NUMBER }}" -gt 0 ]; then
+            git fetch origin ${{ github.head_ref }}:${{ github.head_ref }} || echo "Failed to fetch PR branch"
+            git checkout ${{ github.head_ref }} || git checkout -b ${{ github.head_ref }}
+          else
+            # Checkout nhánh hiện tại
+            git checkout ${BRANCH} || git checkout -b ${BRANCH}
+          fi
+    
+          # Tạo tag và push
+          git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}" ||
