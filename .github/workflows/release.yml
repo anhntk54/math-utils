@@ -144,7 +144,6 @@ jobs:
           git push origin "v${{ env.NEW_VERSION }}"
 
       - name: Publish to npm
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
