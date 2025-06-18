@@ -157,7 +157,7 @@ jobs:
           # Chuẩn bị nội dung bình luận
           echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
           COMMENT="Release for \"[${{ env.HEAD_COMMIT_MESSAGE }}](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
-          SAFE_COMMIT_MESSAGE=$(printf '%s' "COMMENT" | sed 's/"/\\"/g')
+          SAFE_COMMIT_MESSAGE=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
           
           # In ra để debug
           echo "Comment to post: $COMMENT"
