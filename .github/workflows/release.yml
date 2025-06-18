@@ -81,6 +81,7 @@ jobs:
         if: contains(fromJSON('["main"]'), env.BRANCH)
         run: |
           # Cập nhật package.json
+          echo "Updating package.json with new version: ${{ env.NEW_VERSION }}"
           sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package.json
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
