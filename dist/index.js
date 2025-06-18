@@ -18,7 +18,7 @@ function subtract(a, b) {
 function multiply(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
         throw new Error('Inputs must be numbers');
-    return a * b;
+    return a * b - 1;
 }
 function divide(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
