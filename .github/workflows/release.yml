@@ -1,119 +1,133 @@
-#name: Release with npm version based on commits
-#
-#on:
-#  push:
-#    branches:
-#      - main
-#      - dev
-#      - alpha
-#      - staging
-#      - 'issue-*'
-#
-#jobs:
-#  release:
-#    name: Release
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#          token: ${{ secrets.GITHUB_TOKEN }}
-#
-#      - name: Setup Node.js
-#        uses: actions/setup-node@v4
-#        with:
-#          node-version: '18'
-#          registry-url: 'https://registry.npmjs.org/'
-#
-#      - name: Install dependencies
-#        run: npm ci
-#
-#      - name: Build TypeScript
-#        run: npm run build
-#
-#      - name: Determine version bump based on commit and branch
-#        id: version
-#        run: |
-#          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-#          VERSION_CMD="patch"
-#          PREID=""
-#
-#          # Lấy phiên bản hiện tại từ package.json
-#          CURRENT_VERSION=$(node -p "require('./package.json').version")
-#
-#          # Kiểm tra tag hiện tại
-#          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-#
-#          # Phân tích loại commit
-#          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-#          if echo "$LAST_COMMIT_MESSAGE" | grep -q "BREAKING CHANGE"; then
-#            VERSION_CMD="major"
-#          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^feat"; then
-#            VERSION_CMD="minor"
-#          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^fix"; then
-#            VERSION_CMD="patch"
-#          fi
-#
-#          # Xác định PREID dựa trên nhánh
-#          case $BRANCH_NAME in
-#            "main")
-#              # Không dùng pre-release trên main
-#              ;;
-#            "dev"|"staging")
-#              PREID="beta"
-#              ;;
-#            "alpha"|"issue-"*)
-#              PREID="alpha"
-#              ;;
-#          esac
-#
-#          # Logic tăng build cho pre-release
-#          if [ -n "$PREID" ]; then
-#            # Kiểm tra nếu là pre-release và tag khớp
-#            if [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${PREID}\.[0-9]+$ ]] && [ "$CURRENT_VERSION" = "$LATEST_TAG" ]; then
-#              # Lấy số build hiện tại và tăng
-#              BUILD=$(echo "$CURRENT_VERSION" | grep -oP '(?<=${PREID}\.)\d+')
-#              NEW_BUILD=$((BUILD + 1))
-#              NEW_VERSION="${CURRENT_VERSION%-${PREID}.*}-${PREID}.${NEW_BUILD}"
-#              echo "$NEW_VERSION" > package.json
-#              sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
-#            else
-#              # Nếu không phải pre-release hoặc có thay đổi, tăng theo VERSION_CMD
-#              npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
-#            fi
-#          else
-#            # Không phải pre-release, tăng theo VERSION_CMD
-#            npm version $VERSION_CMD --no-git-tag-version
-#          fi
-#
-#          # Lấy phiên bản mới
-#          NEW_VERSION=$(node -p "require('./package.json').version")
-#          echo "Current branch: $BRANCH_NAME"
-#            echo "Latest tag: $LATEST_TAG"
-#            echo "Current version: $CURRENT_VERSION"
-#            echo "New version: $NEW_VERSION"
-#          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-#
-#      - name: Commit and tag version
-#        run: |
-#          git config user.name "GitHub Actions"
-#          git config user.email "actions@github.com"
-#          git add package.json
-#          git add dist/
-#          git commit -m "release: v${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
-#          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-#          git push origin "v${{ steps.version.outputs.new_version }}"
-#
-#      - name: Publish to npm
-#        run: npm publish --access public
-#        env:
-#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-#
-#      - name: Notify Discord on Release
-#        if: success()
-#        uses: Ilshidur/action-discord@master
-#        with:
-#          args: "New version **v${{ steps.version.outputs.new_version }}** of @anhtrieunhu/math-utils has been released! Check it out: https://www.npmjs.com/package/@anhtrieunhu/math-utils"
-#        env:
-#          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+```yaml
+name: Versioning and Release
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Lấy toàn bộ lịch sử để kiểm tra commit message
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Extract branch and PR number
+        id: extract
+        run: |
+          # Lấy nhánh
+          BRANCH=${{ github.head_ref || github.ref_name }}
+          echo "Branch: $BRANCH"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          # Lấy số PR (nếu có)
+          PR_NUMBER=${{ github.event.number || 0 }}
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+          # Lấy thời gian định dạng YYYYMMDD-HHMMSS (UTC)
+          TIME_STRING=$(date -u +%Y%m%d-%H%M%S)
+          echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
+
+      - name: Determine new version
+        id: version
+        run: |
+          # Lấy phiên bản hiện tại từ package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Phân tách phiên bản (loại bỏ hậu tố pre-release)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VERSION%%-*}"
+          
+          # Lấy commit message cuối
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Last commit message: $LAST_COMMIT_MESSAGE"
+          
+          # Xác định loại tăng phiên bản
+          if echo "$LAST_COMMIT_MESSAGE" | grep -q "BREAKING CHANGE"; then
+            VERSION_TYPE="major"
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_MINOR=0
+            NEW_PATCH=0
+            NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^feat"; then
+            VERSION_TYPE="minor"
+            NEW_MINOR=$((MINOR + 1))
+            NEW_PATCH=0
+            NEW_VERSION="${MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+          else
+            VERSION_TYPE="patch"
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          fi
+          
+          # Tùy chỉnh phiên bản theo nhánh
+          if [ "${{ env.BRANCH }}" = "main" ]; then
+            # Nhánh main: tăng patch/minor/major
+            echo "New version: $NEW_VERSION"
+          elif [ "${{ env.BRANCH }}" = "dev" ]; then
+            # Nhánh dev: thêm hậu tố -dev.[time_string]
+            NEW_VERSION="${NEW_VERSION}-dev.${{ env.TIME_STRING }}"
+            echo "New version: $NEW_VERSION"
+          elif [ "${{ env.PR_NUMBER }}" -gt 0 ]; then
+            # Pull request: thêm hậu tố -pr[pr_number].[time_string]
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}-pr${{ env.PR_NUMBER }}.${{ env.TIME_STRING }}"
+            echo "New version: $NEW_VERSION"
+          else
+            # Nhánh khác: tăng patch và thêm -dev.[time_string]
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-dev.${{ env.TIME_STRING }}"
+            echo "New version: $NEW_VERSION"
+          fi
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+
+      - name: Update package.json and commit
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        run: |
+          # Cập nhật package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package.json
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add package.json
+          git commit -m "release: v${{ env.NEW_VERSION }}"
+          
+          # Build TypeScript
+          npm run build
+          git add dist/
+          git commit -m "build: v${{ env.NEW_VERSION }}" || echo "No changes to commit"
+
+      - name: Save version for PR or other branches
+        if: "!contains(fromJSON('['main', 'dev']'), env.BRANCH)"
+        run: |
+          echo "${{ env.NEW_VERSION }}" > version.txt
+          echo "Version for branch/PR: ${{ env.NEW_VERSION }} (not committed)"
+
+      - name: Tag and push
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        run: |
+          git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
+          git push origin "${{ env.BRANCH }}"
+          git push origin "v${{ env.NEW_VERSION }}"
+
+      - name: Publish to npm
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+```
