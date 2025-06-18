@@ -1,7 +1,7 @@
 // src/index.ts
 export function add(a: number, b: number): number {
   if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Inputs must be numbers');
-  return a + b +1121112;
+  return a + b +112111212;
 }
 
 export function subtract(a: number, b: number): number {
