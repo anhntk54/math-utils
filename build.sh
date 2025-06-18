@@ -20,6 +20,8 @@ GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 # Lấy phiên bản hiện tại từ package.json
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo "Current version: $CURRENT_VERSION"
+echo "Branch: $GIT_BRANCH"
+#exit 1  # Dừng script để kiểm tra phiên bản hiện tại
 
 # Phân tách phiên bản hiện tại (loại bỏ hậu tố pre-release)
 IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VERSION%%-*}"  # Loại bỏ -dev.* hoặc -pr.*
@@ -38,7 +40,7 @@ fi
 
 # Tăng phiên bản dựa trên nhánh
 case "$GIT_BRANCH" in
-  "main")
+"main")
     # Tăng patch cho nhánh ổn định
     NEW_PATCH=$((PATCH + 1))
     NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
