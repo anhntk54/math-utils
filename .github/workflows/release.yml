@@ -136,14 +136,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Chuẩn bị nội dung bình luận
-          COMMENT="🎉 This PR is included in version `${{ env.NEW_VERSION }}`! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${{ env.NEW_VERSION }}) (if created)\n\nYour semantic-release-bot 🚀"
+          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n\nYour semantic-release-bot 🚀"
           
           # Gửi bình luận tới PR
           curl -X POST \
                -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PR_NUMBER }}/comments" || echo "Failed to post comment on PR"
+               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
 
       - name: Send Discord notification
         run: |
