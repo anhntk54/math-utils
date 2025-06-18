@@ -42,8 +42,6 @@ jobs:
           TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
           MSG=$(git log --format=%B -n 1 ${{ github.event.after }} | grep -v '^#')
-          echo "HEAD_COMMIT_MESSAGE=$MSG"
-          echo "HEAD_COMMIT_MESSAGE=\"$MSG\"" >> $GITHUB_ENV
           # Kiểm tra nếu MSG chứa [Build]
           if echo "$MSG" | grep -q "\[Build\]"; then
             echo "BUILD_CONDITION=true" >> $GITHUB_ENV
@@ -164,14 +162,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Chuẩn bị nội dung bình luận
-          # Lấy commit message
-          
-          # Chuẩn hóa nội dung bình luận
-          # Thoát ký tự đặc biệt và định dạng JSON an toàn
-          echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
           url="${{ github.event.pull_request._links.html.href}}/commits/${{github.event.after}}"
-          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}/v/${{ env.NEW_VERSION }})"
-          COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
+          MSG=$(git log --format=%B -n 1 ${{ github.event.after }} | grep -v '^#')
+          COMMENT="Release for [$MSG]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}v/${{ env.NEW_VERSION }})"
           echo "Formatted comment: $COMMENT"
           
           # In ra để debug

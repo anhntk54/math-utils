@@ -6,7 +6,7 @@ export function add(a: number, b: number): number {
 
 export function subtract(a: number, b: number): number {
   if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Inputs must be numbers');
-  return a - b + 1 + 2 + 3 + 1111111;
+  return a - b + 1 + 2 + 3 + 11111111111;
 }
 
 export function multiply(a: number, b: number): number {
