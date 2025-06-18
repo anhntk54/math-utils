@@ -162,7 +162,7 @@ jobs:
           # Thoát ký tự đặc biệt và định dạng JSON an toàn
           echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
           url="${{ github.event.pull_request._links.commits.href}}/${{github.event.after}}"
-          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}](1)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
           COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
           echo "Formatted comment: $COMMENT"
           
