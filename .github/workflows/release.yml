@@ -35,7 +35,13 @@ jobs:
           echo "COMMIT_MESSAGE=$LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
       - name: Print head git commit message
         id: get_head_commit_message
-        run: echo "::set-output name=headCommitMsg::$(git show -s --format=%s)"
+        run: |
+          # Lấy commit message của commit hiện tại
+          echo "Head commit message: $(git show -s --format=%s)"
+          # Đặt output cho bước sau
+          echo "::set-output name=headCommitMsg::$(git show -s --format=%s)"
+          # Cũng có thể sử dụng GITHUB_ENV để lưu trữ biến môi trường
+          echo "HEAD_COMMIT_MESSAGE=$(git show -s --format=%s)" >> $GITHUB_ENV
 
       - name: Extract branch and PR number
         id: extract
