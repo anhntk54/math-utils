@@ -113,10 +113,29 @@ jobs:
           git commit -m "build: v${{ env.NEW_VERSION }}" || echo "No changes to commit"
 
       - name: Save version for PR or other branches
-        if: "!contains(fromJSON('['main', 'dev']'), env.BRANCH)"
+        if: "!contains(fromJSON('[\"main\", \"dev\"]'), env.BRANCH)"
         run: |
           echo "${{ env.NEW_VERSION }}" > version.txt
           echo "Version for branch/PR: ${{ env.NEW_VERSION }} (not committed)"
+
+      - name: Send Discord notification
+        run: |
+          # Chuẩn bị nội dung thông báo
+          MESSAGE="**New Version Generated** 🎉\n"
+          MESSAGE+="**Repository**: ${{ github.repository }}\n"
+          MESSAGE+="**Branch**: ${{ env.BRANCH }}\n"
+          if [ "${{ env.PR_NUMBER }}" -gt 0 ]; then
+            MESSAGE+="**Pull Request**: #${{ env.PR_NUMBER }}\n"
+          fi
+          MESSAGE+="**Version**: ${{ env.NEW_VERSION }}\n"
+          MESSAGE+="**Version Type**: ${{ env.VERSION_TYPE }}\n"
+          MESSAGE+="**Commit**: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})\n"
+          
+          # Gửi thông báo tới Discord
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{\"content\": \"$MESSAGE\"}" \
+               "${{ secrets.DISCORD_WEBHOOK_URL }}" || echo "Failed to send Discord notification"
 
       - name: Tag and push
         if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
