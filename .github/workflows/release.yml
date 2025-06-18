@@ -1,3 +1,4 @@
+```yaml
 name: Versioning and Release
 
 on:
@@ -39,7 +40,7 @@ jobs:
           PR_NUMBER=${{ github.event.number || 0 }}
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
           # Lấy thời gian định dạng YYYYMMDD-HHMMSS (UTC)
-          TIME_STRING=$(date -u +%Y%m%d-%H%M%S)
+          TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
 
       - name: Determine new version
@@ -71,7 +72,7 @@ jobs:
           else
             VERSION_TYPE="patch"
             NEW_PATCH=$((PATCH + 1))
-            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            NEW_VERSION="${MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
           fi
           
           # Tùy chỉnh phiên bản theo nhánh
@@ -117,6 +118,23 @@ jobs:
           echo "${{ env.NEW_VERSION }}" > version.txt
           echo "Version for branch/PR: ${{ env.NEW_VERSION }} (not committed)"
 
+      - name: Publish to npm for PR
+        if: env.PR_NUMBER > 0
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Tạo bản sao package.json với phiên bản mới
+          cp package.json package-pr.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package-pr.json
+          
+          # Build TypeScript
+          npm run build
+          
+          # Publish với tag pr
+          cd dist
+          npm publish --access public --tag pr || echo "Failed to publish PR to npm"
+          cd ..
+
       - name: Send Discord notification
         run: |
           # Chuẩn bị nội dung thông báo
@@ -134,7 +152,7 @@ jobs:
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "{\"content\": \"$MESSAGE\"}" \
-               "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
+               "${{ secrets.DISCORD_WEBHOOK_URL }}" || echo "Failed to send Discord notification"
 
       - name: Tag and push
         if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
@@ -143,7 +161,9 @@ jobs:
           git push origin "${{ env.BRANCH }}"
           git push origin "v${{ env.NEW_VERSION }}"
 
-      - name: Publish to npm
+      - name: Publish to npm for main and dev
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
+```
