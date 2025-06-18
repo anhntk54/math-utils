@@ -160,7 +160,7 @@ jobs:
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "{\"content\": \"$MESSAGE\"}" \
-               "${{ secrets.DISCORD_WEBHOOK_URL }}" || echo "Failed to send Discord notification"
+               "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
       - name: Tag and push
         if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
