@@ -116,6 +116,7 @@ jobs:
         run: npm publish --access public
 
       - name: Tag and push
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
