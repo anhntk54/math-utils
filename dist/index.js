@@ -8,12 +8,12 @@ exports.divide = divide;
 function add(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
         throw new Error('Inputs must be numbers');
-    return a + b + b + a;
+    return a + b + b + a + 1;
 }
 function subtract(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
         throw new Error('Inputs must be numbers');
-    return a - b;
+    return a - b + 1;
 }
 function multiply(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
