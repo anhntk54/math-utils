@@ -128,16 +128,22 @@ jobs:
           
           # Build TypeScript
           npm run build || { echo "Build failed"; exit 1; }
-          
-          # Kiểm tra thư mục dist/
-          if [ ! -d "dist" ]; then
-            echo "Directory dist/ does not exist"
-            exit 1
-          fi
-          
           # Publish với tag pr
           npm publish --access public --tag pr || { echo "Failed to publish PR to npm"; exit 1; }
-          cd ..
+      - name: Post comment on PR
+        if: env.PR_NUMBER > 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Chuẩn bị nội dung bình luận
+          COMMENT="🎉 This PR is included in version `${{ env.NEW_VERSION }}`! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${{ env.NEW_VERSION }}) (if created)\n\nYour semantic-release-bot 🚀"
+          
+          # Gửi bình luận tới PR
+          curl -X POST \
+               -H "Authorization: token $GITHUB_TOKEN" \
+               -H "Accept: application/vnd.github.v3+json" \
+               -d "{\"body\": \"$COMMENT\"}" \
+               "https://api.github.com/repos/${{ github.repository }}/issues/${{ env.PR_NUMBER }}/comments" || echo "Failed to post comment on PR"
 
       - name: Send Discord notification
         run: |
