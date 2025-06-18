@@ -89,7 +89,7 @@ jobs:
           echo "VERSION_TYPE=patch" >> $GITHUB_ENV
 
       - name: Update package.json and commit
-        if: env.BRANCH == 'main'
+        if: env.BRANCH == 'main' && env.BUILD_CONDITION == 'true'
         run: |
           # Cập nhật package.json
           echo "Updating package.json with new version: ${{ env.NEW_VERSION }}"
