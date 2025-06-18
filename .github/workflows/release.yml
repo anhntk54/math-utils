@@ -27,6 +27,12 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+      - name: Get commit message from branch
+        if: github.event_name == 'push'  # Chỉ chạy cho sự kiện push
+        run: |
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Last commit message: $LAST_COMMIT_MESSAGE"
+          echo "COMMIT_MESSAGE=$LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
 
       - name: Extract branch and PR number
         id: extract
@@ -159,10 +165,10 @@ jobs:
           # Lấy commit message
           LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           echo "Last commit message: $LAST_COMMIT_MESSAGE"
-          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
-          COMMENT="Release for "[$LAST_COMMIT_MESSAGE]"([${{ github.sha }}])"
-          COMMENT+="\nNpm Version: [version_number](link)"     
-
+          
+          # Chuẩn hóa nội dung bình luận
+          COMMENT="Release for \"[$LAST_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          
           # Gửi bình luận tới PR
           curl -X POST \
                -H "Authorization: token $GITHUB_TOKEN" \
