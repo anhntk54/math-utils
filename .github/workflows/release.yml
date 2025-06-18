@@ -123,8 +123,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Tạo bản sao package.json với phiên bản mới
-          cp package.json package-pr.json
-          sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package-pr.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package.json
+          cat package.json
           
           # Build TypeScript
           npm run build || { echo "Build failed"; exit 1; }
@@ -135,11 +135,7 @@ jobs:
             exit 1
           fi
           
-          # Copy package-pr.json vào dist/
-          cp package-pr.json dist/package.json
-          
           # Publish với tag pr
-          cd dist
           npm publish --access public --tag pr || { echo "Failed to publish PR to npm"; exit 1; }
           cd ..
 
