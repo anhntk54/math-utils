@@ -115,6 +115,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
+      - name: Tag and push
+        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
+          git push origin "${{ env.BRANCH }}" --tags || echo "No tags to push"
+
+
       - name: Send Discord notification
         if: steps.publish_pr_dev.outcome == 'success' || steps.publish_main.outcome == 'success'
         run: |
@@ -136,7 +145,7 @@ jobs:
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
       - name: Post comment on PR
-        if: env.PR_NUMBER > 0
+        if: env.PR_NUMBER > 0 && steps.publish_pr_dev.outcome == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
