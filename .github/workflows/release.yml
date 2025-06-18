@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "JSON data: ${{ github.event.pull_request._links.commits.href}}"
           echo "a ${{github.event.commits_url}}"
-          echo "JSON data: ${{ toJson(github) }}"
+#          echo "JSON data: ${{ toJson(github) }}"
           # Lấy nhánh
           BRANCH=${{ github.head_ref || github.ref_name }}
           echo "Branch: $BRANCH"
@@ -161,7 +161,8 @@ jobs:
           # Chuẩn hóa nội dung bình luận
           # Thoát ký tự đặc biệt và định dạng JSON an toàn
           echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
-          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          url="${{ github.event.pull_request._links.commits.href}}/${{github.event.after}}"
+          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
           COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
           echo "Formatted comment: $COMMENT"
           
