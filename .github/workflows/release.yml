@@ -1,105 +1,100 @@
-name: Release with npm version based on commits
-
-on:
-  push:
-    branches:
-      - main
-      - dev
-      - alpha
-      - staging
-      - 'issue-*'
-
-jobs:
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org/'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Determine version bump based on commit and branch
-        id: version
-        run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          VERSION_CMD="patch"
-          PREID=""
-
-          # Lấy commit message gần nhất
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-
-          # Phân tích loại commit
-          if echo "$LAST_COMMIT_MESSAGE" | grep -q "BREAKING CHANGE"; then
-            VERSION_CMD="major"
-          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^feat"; then
-            VERSION_CMD="minor"
-          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^fix"; then
-            VERSION_CMD="patch"
-          fi
-
-          # Xác định PREID dựa trên nhánh
-          case $BRANCH_NAME in
-            "main")
-              # Không dùng pre-release trên main
-              ;;
-            "dev"|"staging")
-              VERSION_CMD="prerelease"
-              PREID="beta"
-              ;;
-            "alpha"|"issue-"*)
-              VERSION_CMD="prerelease"
-              PREID="alpha"
-              ;;
-          esac
-
-          # Lấy phiên bản hiện tại từ package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-
-          # Kiểm tra tag hiện tại
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          if [ "$CURRENT_VERSION" = "$LATEST_TAG" ] && [ -n "$(git diff --name-only $LATEST_TAG)" ]; then
-            # Có thay đổi nhưng tag khớp, tăng phiên bản
-            true
-          elif [ "$CURRENT_VERSION" != "$LATEST_TAG" ]; then
-            # Phiên bản mới, giữ nguyên VERSION_CMD
-            true
-          else
-            # Không thay đổi, tăng prerelease nếu có PREID
-            VERSION_CMD="prerelease"
-          fi
-
-          # Thực hiện tăng phiên bản với npm version
-          if [ -n "$PREID" ]; then
-            npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
-          else
-            npm version $VERSION_CMD --no-git-tag-version
-          fi
-
-          # Lấy phiên bản mới
-          NEW_VERSION=$(node -p "require('./package.json').version")
-            echo "Current branch: $BRANCH_NAME"
-            echo "Version command: $VERSION_CMD"
-            echo "Pre-release identifier: $PREID"
-            echo "Current version: $CURRENT_VERSION"
-            echo "Latest tag: $LATEST_TAG"
-            echo "New version: $NEW_VERSION"
-            # Ghi ra output để sử dụng trong các bước sau
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
+#name: Release with npm version based on commits
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#      - dev
+#      - alpha
+#      - staging
+#      - 'issue-*'
+#
+#jobs:
+#  release:
+#    name: Release
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#
+#      - name: Setup Node.js
+#        uses: actions/setup-node@v4
+#        with:
+#          node-version: '18'
+#          registry-url: 'https://registry.npmjs.org/'
+#
+#      - name: Install dependencies
+#        run: npm ci
+#
+#      - name: Build TypeScript
+#        run: npm run build
+#
+#      - name: Determine version bump based on commit and branch
+#        id: version
+#        run: |
+#          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+#          VERSION_CMD="patch"
+#          PREID=""
+#
+#          # Lấy phiên bản hiện tại từ package.json
+#          CURRENT_VERSION=$(node -p "require('./package.json').version")
+#
+#          # Kiểm tra tag hiện tại
+#          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+#
+#          # Phân tích loại commit
+#          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+#          if echo "$LAST_COMMIT_MESSAGE" | grep -q "BREAKING CHANGE"; then
+#            VERSION_CMD="major"
+#          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^feat"; then
+#            VERSION_CMD="minor"
+#          elif echo "$LAST_COMMIT_MESSAGE" | grep -q "^fix"; then
+#            VERSION_CMD="patch"
+#          fi
+#
+#          # Xác định PREID dựa trên nhánh
+#          case $BRANCH_NAME in
+#            "main")
+#              # Không dùng pre-release trên main
+#              ;;
+#            "dev"|"staging")
+#              PREID="beta"
+#              ;;
+#            "alpha"|"issue-"*)
+#              PREID="alpha"
+#              ;;
+#          esac
+#
+#          # Logic tăng build cho pre-release
+#          if [ -n "$PREID" ]; then
+#            # Kiểm tra nếu là pre-release và tag khớp
+#            if [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${PREID}\.[0-9]+$ ]] && [ "$CURRENT_VERSION" = "$LATEST_TAG" ]; then
+#              # Lấy số build hiện tại và tăng
+#              BUILD=$(echo "$CURRENT_VERSION" | grep -oP '(?<=${PREID}\.)\d+')
+#              NEW_BUILD=$((BUILD + 1))
+#              NEW_VERSION="${CURRENT_VERSION%-${PREID}.*}-${PREID}.${NEW_BUILD}"
+#              echo "$NEW_VERSION" > package.json
+#              sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+#            else
+#              # Nếu không phải pre-release hoặc có thay đổi, tăng theo VERSION_CMD
+#              npm version $VERSION_CMD --preid=$PREID --no-git-tag-version
+#            fi
+#          else
+#            # Không phải pre-release, tăng theo VERSION_CMD
+#            npm version $VERSION_CMD --no-git-tag-version
+#          fi
+#
+#          # Lấy phiên bản mới
+#          NEW_VERSION=$(node -p "require('./package.json').version")
+#          echo "Current branch: $BRANCH_NAME"
+#            echo "Latest tag: $LATEST_TAG"
+#            echo "Current version: $CURRENT_VERSION"
+#            echo "New version: $NEW_VERSION"
+#          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+#
 #      - name: Commit and tag version
 #        run: |
 #          git config user.name "GitHub Actions"
@@ -109,16 +104,16 @@ jobs:
 #          git commit -m "release: v${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
 #          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
 #          git push origin "v${{ steps.version.outputs.new_version }}"
-
-      - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Notify Discord on Release
-        if: success()
-        uses: Ilshidur/action-discord@master
-        with:
-          args: "New version **v${{ steps.version.outputs.new_version }}** of @anhtrieunhu/math-utils has been released! Check it out: https://www.npmjs.com/package/@anhtrieunhu/math-utils"
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+#
+#      - name: Publish to npm
+#        run: npm publish --access public
+#        env:
+#          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+#
+#      - name: Notify Discord on Release
+#        if: success()
+#        uses: Ilshidur/action-discord@master
+#        with:
+#          args: "New version **v${{ steps.version.outputs.new_version }}** of @anhtrieunhu/math-utils has been released! Check it out: https://www.npmjs.com/package/@anhtrieunhu/math-utils"
+#        env:
+#          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
