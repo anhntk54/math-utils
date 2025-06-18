@@ -44,8 +44,15 @@ jobs:
           MSG=$(git log --format=%B -n 1 ${{github.event.after}})
           echo "HEAD_COMMIT_MESSAGE=$MSG"
           echo "HEAD_COMMIT_MESSAGE=\"$MSG\"" >> $GITHUB_ENV
+          # Kiểm tra nếu MSG chứa [Build]
+          if echo "$MSG" | grep -q "\[Build\]"; then
+            echo "BUILD_CONDITION=true" >> $GITHUB_ENV
+          else
+            echo "BUILD_CONDITION=false" >> $GITHUB_ENV
+          fi
 
       - name: Determine new version
+        if: env.BUILD_CONDITION == 'true'
         id: version
         run: |
           # Lấy phiên bản hiện tại từ package.json
@@ -99,7 +106,7 @@ jobs:
           git push origin ${{ env.BRANCH }} || echo "No changes to push"
 
       - name: Publish to npm for PR or dev branch
-        if: env.PR_NUMBER > 0 || env.BRANCH == 'dev'
+        if: (env.PR_NUMBER > 0 || env.BRANCH == 'dev') &&  env.BUILD_CONDITION == 'true'
         id: publish_pr_dev
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -113,14 +120,14 @@ jobs:
           # Publish với tag pr
           npm publish --access public  || { echo "Failed to publish PR to npm"; exit 1; }
       - name: Publish to npm for main
-        if: env.BRANCH == 'main'
+        if: env.BRANCH == 'main' && env.BUILD_CONDITION == 'true'
         id: publish_main
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Tag and push
-        if: env.BRANCH == 'main' || env.BRANCH == 'dev'
+        if: (env.BRANCH == 'main' || env.BRANCH == 'dev') && env.BUILD_CONDITION == 'true'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -129,7 +136,7 @@ jobs:
 
 
       - name: Send Discord notification
-        if: steps.publish_pr_dev.outcome == 'success' || steps.publish_main.outcome == 'success'
+        if: (steps.publish_pr_dev.outcome == 'success' || steps.publish_main.outcome == 'success') && env.BUILD_CONDITION == 'true'
         run: |
           # Chuẩn bị nội dung thông báo
           MESSAGE="**New Version Generated** 🎉\n"
@@ -149,7 +156,7 @@ jobs:
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
       - name: Post comment on PR
-        if: env.PR_NUMBER > 0 && steps.publish_pr_dev.outcome == 'success'
+        if: env.PR_NUMBER > 0 && steps.publish_pr_dev.outcome == 'success' && env.BUILD_CONDITION == 'true's
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
