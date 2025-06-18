@@ -32,7 +32,6 @@ jobs:
         id: extract
         run: |
           OMMIT_MESSAGE=${{ github.event.head_commit.message }}
-          echo "${{toJSON(github.event)}}"
           echo "Commit message: $COMMIT_MESSAGE"
           # Lấy nhánh
           BRANCH=${{ github.head_ref || github.ref_name }}
@@ -159,6 +158,7 @@ jobs:
           
           # Chuẩn hóa nội dung bình luận
           # Thoát ký tự đặc biệt và định dạng JSON an toàn
+          echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
           SAFE_COMMIT_MESSAGE=$(printf '%s' "$LAST_COMMIT_MESSAGE" | sed 's/"/\\"/g')
           COMMENT="Release for \"[env.HEAD_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
           
