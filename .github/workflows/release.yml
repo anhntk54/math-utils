@@ -33,6 +33,9 @@ jobs:
           LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           echo "Last commit message: $LAST_COMMIT_MESSAGE"
           echo "COMMIT_MESSAGE=$LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
+      - name: Print head git commit message
+        id: get_head_commit_message
+        run: echo "::set-output name=headCommitMsg::$(git show -s --format=%s)"
 
       - name: Extract branch and PR number
         id: extract
