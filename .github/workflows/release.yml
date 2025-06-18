@@ -38,8 +38,8 @@ jobs:
           # Lấy số PR (nếu có)
           PR_NUMBER=${{ github.event.number || 0 }}
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
-          # Lấy thời gian định dạng YYYYMMDD-HHMMSS (UTC)
-          TIME_STRING=$(date -u +%Y%m%d-%H%M%S)
+          # Lấy thời gian định dạng YYYYMMDD-HHMMSS (+07)
+          TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
 
       - name: Determine new version
@@ -117,6 +117,34 @@ jobs:
           echo "${{ env.NEW_VERSION }}" > version.txt
           echo "Version for branch/PR: ${{ env.NEW_VERSION }} (not committed)"
 
+      - name: Publish to npm for PR
+        if: env.PR_NUMBER > 0
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Tạo bản sao package.json với phiên bản mới
+          sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package.json
+          cat package.json
+          
+          # Build TypeScript
+          npm run build || { echo "Build failed"; exit 1; }
+          # Publish với tag pr
+          npm publish --access public --tag pr || { echo "Failed to publish PR to npm"; exit 1; }
+      - name: Post comment on PR
+        if: env.PR_NUMBER > 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Chuẩn bị nội dung bình luận
+          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
+          
+          # Gửi bình luận tới PR
+          curl -X POST \
+               -H "Authorization: token $GITHUB_TOKEN" \
+               -H "Accept: application/vnd.github.v3+json" \
+               -d "{\"body\": \"$COMMENT\"}" \
+               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
+
       - name: Send Discord notification
         run: |
           # Chuẩn bị nội dung thông báo
@@ -143,7 +171,7 @@ jobs:
           git push origin "${{ env.BRANCH }}"
           git push origin "v${{ env.NEW_VERSION }}"
 
-      - name: Publish to npm
+      - name: Publish to npm for main and dev
         if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
