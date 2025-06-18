@@ -13,7 +13,7 @@ function add(a, b) {
 function subtract(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
         throw new Error('Inputs must be numbers');
-    return a - b + 1 + 2 + 3 + 1111;
+    return a - b + 1 + 2 + 3 + 11111;
 }
 function multiply(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
