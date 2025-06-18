@@ -41,12 +41,16 @@ jobs:
           # Lấy thời gian định dạng YYYYMMDD-HHMMSS (+07)
           TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
+          MSG=$(git log --format=%B -n 1 ${{github.event.after}})
+          echo "HEAD_COMMIT_MESSAGE=$MSG"
+          echo "HEAD_COMMIT_MESSAGE=$MSG" >> $GITHUB_ENV
 
       - name: Determine new version
         id: version
         run: |
           # Lấy phiên bản hiện tại từ package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
           echo "Current version: $CURRENT_VERSION"
           
           # Phân tách phiên bản (loại bỏ hậu tố pre-release)
@@ -78,7 +82,7 @@ jobs:
           echo "VERSION_TYPE=patch" >> $GITHUB_ENV
 
       - name: Update package.json and commit
-        if: contains(fromJSON('["main"]'), env.BRANCH)
+        if: env.BRANCH == 'main'
         run: |
           # Cập nhật package.json
           echo "Updating package.json with new version: ${{ env.NEW_VERSION }}"
@@ -95,7 +99,7 @@ jobs:
           git push origin ${{ env.BRANCH }} || echo "No changes to push"
 
       - name: Publish to npm for PR or dev branch
-        if: env.PR_NUMBER > 0 || contains(fromJSON('["dev"]'), env.BRANCH)
+        if: env.PR_NUMBER > 0 || env.BRANCH == 'dev'
         id: publish_pr_dev
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -108,20 +112,20 @@ jobs:
           npm run build || { echo "Build failed"; exit 1; }
           # Publish với tag pr
           npm publish --access public  || { echo "Failed to publish PR to npm"; exit 1; }
-      - name: Publish to npm for main and dev
-        if: contains(fromJSON('["main"]'), env.BRANCH)
+      - name: Publish to npm for main
+        if: env.BRANCH == 'main'
         id: publish_main
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Tag and push
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        if: env.BRANCH == 'main' || env.BRANCH == 'dev'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
-          git push origin "${{ env.BRANCH }}" --tags || echo "No tags to push"
+          git push origin "${{ env.BRANCH }}"
 
 
       - name: Send Discord notification
@@ -150,11 +154,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Chuẩn bị nội dung bình luận
-          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
-
+          # Lấy commit message
+          
+          # Chuẩn hóa nội dung bình luận
+          # Thoát ký tự đặc biệt và định dạng JSON an toàn
+          echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
+          url="${{ github.event.pull_request._links.html.href}}/commits/${{github.event.after}}"
+          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}/v/${{ env.NEW_VERSION }})"
+          COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
+          echo "Formatted comment: $COMMENT"
+          
+          # In ra để debug
+          echo "Comment to post: $COMMENT"
+          
           # Gửi bình luận tới PR
           curl -X POST \
                -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
+               "${{ github.event.pull_request._links.comments.href}}" || echo "Failed to post comment on PR"
