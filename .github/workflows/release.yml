@@ -140,7 +140,7 @@ jobs:
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
       - name: Publish to npm for main and dev
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        if: contains(fromJSON('["main"]'), env.BRANCH)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
