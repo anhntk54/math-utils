@@ -48,7 +48,7 @@ jobs:
           if echo "$MSG" | grep -q "\[Build\]"; then
             echo "BUILD_CONDITION=true" >> $GITHUB_ENV
           else
-            echo "BUILD_CONDITION=false" >> $GITHUB_ENV
+            echo "BUILD_CONDITION=trueaa" >> $GITHUB_ENV
           fi
 
       - name: Determine new version
