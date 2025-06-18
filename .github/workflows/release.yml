@@ -31,6 +31,8 @@ jobs:
       - name: Extract branch and PR number
         id: extract
         run: |
+          OMMIT_MESSAGE=${{ github.event.head_commit.message }}
+          echo "Commit message: $COMMIT_MESSAGE"
           # Lấy nhánh
           BRANCH=${{ github.head_ref || github.ref_name }}
           echo "Branch: $BRANCH"
