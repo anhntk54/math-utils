@@ -31,6 +31,8 @@ jobs:
       - name: Extract branch and PR number
         id: extract
         run: |
+          echo "JSON data: ${{ github.event.pull_request._links.commits.href}}"
+          echo "a ${{github.event.commits_url}}"
           echo "JSON data: ${{ toJson(github) }}"
           # Lấy nhánh
           BRANCH=${{ github.head_ref || github.ref_name }}
