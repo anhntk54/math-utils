@@ -7,6 +7,7 @@ get_time_string() {
 
 # Hàm để lấy số PR từ nhánh (dựa trên tên nhánh, giả định định dạng refs/pull/PRNUMBER/head)
 get_pr_number() {
+  echo "Branch: $GIT_BRANCH"
   if [[ "$GIT_BRANCH" =~ refs/pull/([0-9]+)/head ]]; then
     echo "${BASH_REMATCH[1]}"
   else
@@ -21,7 +22,8 @@ GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo "Current version: $CURRENT_VERSION"
 echo "Branch: $GIT_BRANCH"
-#exit 1  # Dừng script để kiểm tra phiên bản hiện tại
+echo "get_pr_number: $(get_pr_number)"
+exit 1  # Dừng script để kiểm tra phiên bản hiện tại
 
 # Phân tách phiên bản hiện tại (loại bỏ hậu tố pre-release)
 IFS='.' read -r MAJOR MINOR PATCH <<< "${CURRENT_VERSION%%-*}"  # Loại bỏ -dev.* hoặc -pr.*
