@@ -167,7 +167,12 @@ jobs:
           echo "Last commit message: $LAST_COMMIT_MESSAGE"
           
           # Chuẩn hóa nội dung bình luận
-          COMMENT="Release for \"[$LAST_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          # Thoát ký tự đặc biệt và định dạng JSON an toàn
+          SAFE_COMMIT_MESSAGE=$(printf '%s' "$LAST_COMMIT_MESSAGE" | sed 's/"/\\"/g')
+          COMMENT="Release for \"[$SAFE_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          
+          # In ra để debug
+          echo "Comment to post: $COMMENT"
           
           # Gửi bình luận tới PR
           curl -X POST \
