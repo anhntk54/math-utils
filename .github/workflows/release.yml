@@ -41,7 +41,7 @@ jobs:
           # Lấy thời gian định dạng YYYYMMDD-HHMMSS (+07)
           TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
-          MSG=$(git log --format=%B -n 1 ${{github.event.after}})
+          MSG=$(git log --format=%B -n 1 ${{ github.event.after }} | grep -v '^#')
           echo "HEAD_COMMIT_MESSAGE=$MSG"
           echo "HEAD_COMMIT_MESSAGE=\"$MSG\"" >> $GITHUB_ENV
           # Kiểm tra nếu MSG chứa [Build]
