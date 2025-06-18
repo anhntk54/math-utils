@@ -83,7 +83,7 @@ jobs:
           echo "VERSION_TYPE=patch" >> $GITHUB_ENV
 
       - name: Update package.json and commit
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
+        if: contains(fromJSON('["main"]'), env.BRANCH)
         run: |
           # Cập nhật package.json
           sed -i "s/\"version\": \".*\"/\"version\": \"${{ env.NEW_VERSION }}\"/" package.json
@@ -97,14 +97,8 @@ jobs:
           git add dist/
           git commit -m "build: v${{ env.NEW_VERSION }}" || echo "No changes to commit"
 
-      - name: Save version for PR or other branches
-        if: "!contains(fromJSON('[\"main\", \"dev\"]'), env.BRANCH)"
-        run: |
-          echo "${{ env.NEW_VERSION }}" > version.txt
-          echo "Version for branch/PR: ${{ env.NEW_VERSION }} (not committed)"
-
-      - name: Publish to npm for PR
-        if: env.PR_NUMBER > 0
+      - name: Publish to npm for PR or dev branch
+        if: env.PR_NUMBER > 0 || contains(fromJSON('["dev"]'), env.BRANCH)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -149,13 +143,6 @@ jobs:
                -X POST \
                -d "{\"content\": \"$MESSAGE\"}" \
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
-
-      - name: Tag and push
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
-        run: |
-          git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
-          git push origin "${{ env.BRANCH }}"
-          git push origin "v${{ env.NEW_VERSION }}"
 
       - name: Publish to npm for main and dev
         if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
