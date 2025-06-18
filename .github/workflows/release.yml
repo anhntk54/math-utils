@@ -164,7 +164,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           url="${{ github.event.pull_request._links.html.href}}/commits/${{github.event.after}}"
-          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}/v/${{ env.NEW_VERSION }})"
+          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}](2)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}/v/${{ env.NEW_VERSION }})"
           COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
           echo "Formatted comment: $COMMENT"
           
