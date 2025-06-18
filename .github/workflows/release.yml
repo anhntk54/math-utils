@@ -120,8 +120,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
-          git push origin "${{ env.BRANCH }}"
-          git push origin "v${{ env.NEW_VERSION }}"
+          git push origin "${{ env.BRANCH }}" --tags || echo "No tags to push"
 
 
       - name: Send Discord notification
