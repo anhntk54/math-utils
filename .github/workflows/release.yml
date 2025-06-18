@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - dev
-      - issue-*
   pull_request:
     branches:
       - main
@@ -79,7 +78,7 @@ jobs:
           echo "VERSION_TYPE=patch" >> $GITHUB_ENV
 
       - name: Update package.json and commit
-        if: contains(fromJSON('["main"]'), env.BRANCH)
+        if: env.BRANCH == 'main'
         run: |
           # Cập nhật package.json
           echo "Updating package.json with new version: ${{ env.NEW_VERSION }}"
@@ -96,7 +95,7 @@ jobs:
           git push origin ${{ env.BRANCH }} || echo "No changes to push"
 
       - name: Publish to npm for PR or dev branch
-        if: env.PR_NUMBER > 0 || contains(fromJSON('["dev"]'), env.BRANCH)
+        if: env.PR_NUMBER > 0 || env.BRANCH == 'dev'
         id: publish_pr_dev
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -109,19 +108,18 @@ jobs:
           npm run build || { echo "Build failed"; exit 1; }
           # Publish với tag pr
           npm publish --access public  || { echo "Failed to publish PR to npm"; exit 1; }
-      - name: Publish to npm for main and dev
-        if: contains(fromJSON('["main"]'), env.BRANCH)
+      - name: Publish to npm for main
+        if: env.BRANCH == 'main'
         id: publish_main
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
 
       - name: Tag and push
+        if: env.BRANCH == 'main' || env.BRANCH == 'dev'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          npm run build
-          git add dist/
           git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
           git push origin "${{ env.BRANCH }}"
 
@@ -152,7 +150,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Chuẩn bị nội dung bình luận
+          # Lấy commit message
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "Last commit message: $LAST_COMMIT_MESSAGE"
           COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
+          COMMENT="Release for "[$LAST_COMMIT_MESSAGE]"([${{ github.sha }}])"
+          COMMENT+="\nNpm Version: [version_number](link)"     
 
           # Gửi bình luận tới PR
           curl -X POST \
