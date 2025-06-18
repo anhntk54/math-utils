@@ -37,6 +37,9 @@ jobs:
         id: get_head_commit_message
         run: |
           # Lấy commit message của commit hiện tại
+          echo "Head commit message: $(git show -s --format=%s)"
+          MSG=$(git log --format=%B -n 1 ${{github.event.after}})
+          echo "Commit message: $MSG"
           echo "github.event.head_commit.message: ${{ github.event.head_commit.message }}"
           # In ra commit message
           echo "${{ github.event.commits[0].message }}"
