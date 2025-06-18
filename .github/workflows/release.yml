@@ -94,6 +94,7 @@ jobs:
 
       - name: Publish to npm for PR or dev branch
         if: env.PR_NUMBER > 0 || contains(fromJSON('["dev"]'), env.BRANCH)
+        id: publish_pr_dev
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -105,22 +106,15 @@ jobs:
           npm run build || { echo "Build failed"; exit 1; }
           # Publish với tag pr
           npm publish --access public  || { echo "Failed to publish PR to npm"; exit 1; }
-      - name: Post comment on PR
-        if: env.PR_NUMBER > 0
+      - name: Publish to npm for main and dev
+        if: contains(fromJSON('["main"]'), env.BRANCH)
+        id: publish_main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Chuẩn bị nội dung bình luận
-          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
-          
-          # Gửi bình luận tới PR
-          curl -X POST \
-               -H "Authorization: token $GITHUB_TOKEN" \
-               -H "Accept: application/vnd.github.v3+json" \
-               -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
 
       - name: Send Discord notification
+        if: steps.publish_pr_dev.outcome == 'success' || steps.publish_main.outcome == 'success'
         run: |
           # Chuẩn bị nội dung thông báo
           MESSAGE="**New Version Generated** 🎉\n"
@@ -139,8 +133,17 @@ jobs:
                -d "{\"content\": \"$MESSAGE\"}" \
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
-      - name: Publish to npm for main and dev
-        if: contains(fromJSON('["main"]'), env.BRANCH)
+      - name: Post comment on PR
+        if: env.PR_NUMBER > 0
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Chuẩn bị nội dung bình luận
+          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
+
+          # Gửi bình luận tới PR
+          curl -X POST \
+               -H "Authorization: token $GITHUB_TOKEN" \
+               -H "Accept: application/vnd.github.v3+json" \
+               -d "{\"body\": \"$COMMENT\"}" \
+               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
