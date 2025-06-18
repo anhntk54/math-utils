@@ -136,7 +136,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Chuẩn bị nội dung bình luận
-          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n\nYour semantic-release-bot 🚀"
+          COMMENT="🎉 This PR is included in version '${NEW_VERSION}'! 🎉\n\nThe release is available on:\n- [npm package](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${NEW_VERSION})\n- [GitHub release](https://github.com/anhtrieunhu/math-utils/releases/tag/v${NEW_VERSION}) (if created)\n 🚀"
           
           # Gửi bình luận tới PR
           curl -X POST \
