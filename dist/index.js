@@ -8,7 +8,7 @@ exports.divide = divide;
 function add(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
         throw new Error('Inputs must be numbers');
-    return a + b + 11211121211;
+    return a + b + b;
 }
 function subtract(a, b) {
     if (typeof a !== 'number' || typeof b !== 'number')
