@@ -1,6 +1,6 @@
 {
   "name": "@anhtrieunhu/math-utils",
-  "version": "4.1.3-dev.20250618-113631",
+  "version": "4.1.4-dev.20250618-113745",
   "description": "A simple TypeScript utility library for basic math operations with alpha pre-release support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
