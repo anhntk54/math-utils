@@ -31,8 +31,6 @@ jobs:
       - name: Extract branch and PR number
         id: extract
         run: |
-          echo "JSON data: ${{ github.event.pull_request._links.commits.href}}"
-          echo "a ${{github.event.commits_url}}"
           # Lấy nhánh
           BRANCH=${{ github.head_ref || github.ref_name }}
           echo "Branch: $BRANCH"
@@ -52,6 +50,7 @@ jobs:
         run: |
           # Lấy phiên bản hiện tại từ package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
           echo "Current version: $CURRENT_VERSION"
           
           # Phân tách phiên bản (loại bỏ hậu tố pre-release)
@@ -161,7 +160,7 @@ jobs:
           # Thoát ký tự đặc biệt và định dạng JSON an toàn
           echo "Posting comment on PR #${{ env.HEAD_COMMIT_MESSAGE }}"
           url="${{ github.event.pull_request._links.html.href}}/commits/${{github.event.after}}"
-          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          COMMENT="Release for [${{ env.HEAD_COMMIT_MESSAGE }}]($url)\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/${{env.PACKAGE_NAME}}/v/${{ env.NEW_VERSION }})"
           COMMENT=$(printf '%s' "$COMMENT" | sed 's/"/\\"/g')
           echo "Formatted comment: $COMMENT"
           
@@ -173,4 +172,4 @@ jobs:
                -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"body\": \"$COMMENT\"}" \
-               "https://api.github.com/repos/anhntk54/math-utils/issues/${PR_NUMBER}/comments" || echo "Failed to post comment on PR"
+               "${{ github.event.pull_request._links.comments.href}}" || echo "Failed to post comment on PR"
