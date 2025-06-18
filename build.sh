@@ -48,7 +48,7 @@ case "$GIT_BRANCH" in
   "dev")
     # Đặt phiên bản cụ thể như yêu cầu (0.3.1-dev.20250618-022555) hoặc tăng patch
     TIME_STRING=$(get_time_string)
-    NEW_VERSION="0.3.1-dev.${TIME_STRING}"
+    NEW_VERSION="${CURRENT_VERSION}-dev.${TIME_STRING}"
     ;;
   *)
     # Xử lý pull request hoặc các nhánh khác
