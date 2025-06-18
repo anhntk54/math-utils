@@ -43,7 +43,7 @@ jobs:
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
           MSG=$(git log --format=%B -n 1 ${{github.event.after}})
           echo "HEAD_COMMIT_MESSAGE=$MSG"
-          echo "HEAD_COMMIT_MESSAGE=$MSG" >> $GITHUB_ENV
+          echo "HEAD_COMMIT_MESSAGE=\"$MSG\"" >> $GITHUB_ENV
 
       - name: Determine new version
         id: version
