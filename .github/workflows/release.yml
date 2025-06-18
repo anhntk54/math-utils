@@ -128,7 +128,7 @@ jobs:
         run: npm publish --access public
 
       - name: Tag and push
-        if: (env.BRANCH == 'main' || env.BRANCH == 'dev') && env.BUILD_CONDITION == 'true'
+        if:  env.BUILD_CONDITION == 'true'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
