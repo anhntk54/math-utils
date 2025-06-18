@@ -116,12 +116,11 @@ jobs:
         run: npm publish --access public
 
       - name: Tag and push
-        if: contains(fromJSON('["main", "dev"]'), env.BRANCH)
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}"
-          git push origin "${{ env.BRANCH }}" --tags || echo "No tags to push"
+          git push origin "${{ env.BRANCH }}"
 
 
       - name: Send Discord notification
