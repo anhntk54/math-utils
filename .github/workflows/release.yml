@@ -156,7 +156,7 @@ jobs:
                "${{ secrets.DISCORD_WEBHOOK }}" || echo "Failed to send Discord notification"
 
       - name: Post comment on PR
-        if: env.PR_NUMBER > 0 && steps.publish_pr_dev.outcome == 'success' && env.BUILD_CONDITION == 'true's
+        if: env.PR_NUMBER > 0 && steps.publish_pr_dev.outcome == 'success' && env.BUILD_CONDITION == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
