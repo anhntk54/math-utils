@@ -27,27 +27,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-      - name: Get commit message from branch
-        if: github.event_name == 'push'  # Chỉ chạy cho sự kiện push
-        run: |
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Last commit message: $LAST_COMMIT_MESSAGE"
-          echo "COMMIT_MESSAGE=$LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
-      - name: Print head git commit message
-        id: get_head_commit_message
-        run: |
-          # Lấy commit message của commit hiện tại
-          echo "Head commit message: $(git show -s --format=%s)"
-          MSG=$(git log --format=%B -n 1 ${{github.event.after}})
-          echo "Commit message: $MSG"
-          echo "github.event.head_commit.message: ${{ github.event.head_commit.message }}"
-          # In ra commit message
-          echo "${{ github.event.commits[0].message }}"
-          echo "Head commit message: $(git show -s --format=%s)"
-          # Đặt output cho bước sau
-          echo "::set-output name=headCommitMsg::$(git show -s --format=%s)"
-          # Cũng có thể sử dụng GITHUB_ENV để lưu trữ biến môi trường
-          echo "HEAD_COMMIT_MESSAGE=$(git show -s --format=%s)" >> $GITHUB_ENV
 
       - name: Extract branch and PR number
         id: extract
@@ -65,9 +44,8 @@ jobs:
           # Lấy thời gian định dạng YYYYMMDD-HHMMSS (+07)
           TIME_STRING=$(TZ="Asia/Ho_Chi_Minh" date +%Y%m%d-%H%M%S)
           echo "TIME_STRING=$TIME_STRING" >> $GITHUB_ENV
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Last commit message: $LAST_COMMIT_MESSAGE"
-          echo "LAST_COMMIT_MESSAGE=$LAST_COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "HEAD_COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{github.event.after}})"
+          echo "HEAD_COMMIT_MESSAGE=$(git log --format=%B -n 1 ${{github.event.after}})" >> $GITHUB_ENV
 
       - name: Determine new version
         id: version
@@ -178,13 +156,11 @@ jobs:
         run: |
           # Chuẩn bị nội dung bình luận
           # Lấy commit message
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Last commit message: $LAST_COMMIT_MESSAGE"
           
           # Chuẩn hóa nội dung bình luận
           # Thoát ký tự đặc biệt và định dạng JSON an toàn
           SAFE_COMMIT_MESSAGE=$(printf '%s' "$LAST_COMMIT_MESSAGE" | sed 's/"/\\"/g')
-          COMMENT="Release for \"[$SAFE_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
+          COMMENT="Release for \"[env.HEAD_COMMIT_MESSAGE](${{ github.sha }})\nNpm Version: [${{ env.NEW_VERSION }}](https://www.npmjs.com/package/@anhtrieunhu/math-utils/v/${{ env.NEW_VERSION }})"
           
           # In ra để debug
           echo "Comment to post: $COMMENT"
