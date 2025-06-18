@@ -1,13 +1,12 @@
 {
   "name": "@anhtrieunhu/math-utils",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A simple TypeScript utility library for basic math operations with alpha pre-release support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "preversion": "npm run build",
-    "version": "0.3.2",
     "release:alpha": "npm version prerelease --preid=alpha && git push --follow-tags && npm publish --access public",
     "release:beta": "npm version prerelease --preid=beta && git push --follow-tags && npm publish --access public"
   },
