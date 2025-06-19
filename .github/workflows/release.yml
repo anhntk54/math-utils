@@ -13,6 +13,7 @@ on:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    if: "startsWith(github.event.head_commit.message, '[Build]') || github.event_name == 'pull_request'"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
