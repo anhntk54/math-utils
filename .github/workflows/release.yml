@@ -13,6 +13,7 @@ on:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    if: "startsWith(github.event.head_commit.message, '[Build]')"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,7 +129,7 @@ jobs:
         run: npm publish --access public
 
       - name: Tag and push
-        if: (env.BRANCH == 'main' || env.BRANCH == 'dev') && env.BUILD_CONDITION == 'true'
+        if:  env.BUILD_CONDITION == 'true'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -177,3 +178,29 @@ jobs:
                -H "Accept: application/vnd.github.v3+json" \
                -d "{\"body\": \"$COMMENT\"}" \
                "${{ github.event.pull_request._links.comments.href}}" || echo "Failed to post comment on PR"
+
+      - name: Tag and push
+        if: startsWith(env.BRANCH, 'issue-')
+        run: |
+          # Kiểm tra xem tag đã tồn tại chưa
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ env.NEW_VERSION }}"; then
+            echo "Tag v${{ env.NEW_VERSION }} already exists, deleting it..."
+            git push origin :refs/tags/v${{ env.NEW_VERSION }} || echo "Failed to delete existing tag"
+          fi
+    
+          # Cấu hình danh tính Git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+    
+          # Fetch nhánh nguồn nếu là PR
+          if [ "${{ env.PR_NUMBER }}" -gt 0 ]; then
+            git fetch origin ${{ github.head_ref }}:${{ github.head_ref }} || echo "Failed to fetch PR branch"
+            git checkout ${{ github.head_ref }} || git checkout -b ${{ github.head_ref }}
+          else
+            # Checkout nhánh hiện tại
+            git checkout ${BRANCH} || git checkout -b ${BRANCH}
+          fi
+    
+          # Tạo tag và push
+          git tag -a "v${{ env.NEW_VERSION }}" -m "Release v${{ env.NEW_VERSION }}" || { echo "Failed to create tag"; exit 1; }
+          git push origin ${BRANCH} --tags --force || echo "Failed to push branch and tags"
